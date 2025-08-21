@@ -5,60 +5,60 @@
 
 #include "Logger.hpp"
 
-#include <sstream>
 #include <ctime>
 #include <filesystem>
+#include <iostream>
+#include <sstream>
 
 namespace lrh
 {
-    std::ostream& operator<<(std::ostream& ss, const Logger::Level level)
+    std::ostream& operator<<(std::ostream& ss, const Logger::Level lvl)
     {
-        constexpr static const char* arrStrLvl[]
+        static constexpr const char* arrStrLvl[]
         {
             "INFO", "DEBUG", "WARNING", "ERROR", "FATAL"
         };
 
-        ss << arrStrLvl[static_cast<int>(level)];
+        ss << arrStrLvl[static_cast<int>(lvl)];
 
         return ss;
     }
 
     void Logger::info(const std::string& message, const sl& loc)
     {
-        getInstance().write(message, Level::Info, loc);
+        instance().write(message, Level::Info, loc);
     }
 
     void Logger::debug(const std::string& message, const sl& loc)
     {
-        getInstance().write(message, Level::Debug, loc);
+        instance().write(message, Level::Debug, loc);
     }
 
     void Logger::warning(const std::string& message, const sl& loc)
     {
-        getInstance().write(message, Level::Warning, loc);
+        instance().write(message, Level::Warning, loc);
     }
 
     void Logger::error(const std::string& message, const sl& loc)
     {
-        getInstance().write(message, Level::Error, loc);
+        instance().write(message, Level::Error, loc);
     }
 
     void Logger::fatal(const std::string& message, const sl& loc)
     {
-        getInstance().write(message, Level::Fatal, loc);
+        instance().write(message, Level::Fatal, loc);
     }
 
     Logger::Logger(const std::string& fileName)
+        : m_loggerStream(fileName, std::ios::app)
     {
-        ofs.open(fileName, std::ios::app);
-
-        if (not ofs.is_open())
+        if (not m_loggerStream.is_open())
             throw std::runtime_error("Could not open log file: " + fileName);
     }
 
-    Logger& Logger::getInstance()
+    Logger& Logger::instance( const char* logsLocation )
     {
-        static Logger singleton(createFileName());
+        static Logger singleton{ createFileName(logsLocation) };
         return singleton;
     }
 
@@ -79,19 +79,26 @@ namespace lrh
             << loc.line() << "] : "
             << message << '\n';
 
-        ofs << log.str();
+        m_loggerStream << log.str();
 
-        ofs.flush();
+        std::cout << log.str() << std::endl;
+
+        m_loggerStream.flush();
     }
 
-    std::string Logger::createFileName(const char* logsLocation)
+    std::string Logger::createFileName(const std::string &logsLocation)
     {
         std::filesystem::create_directory(logsLocation);
 
         std::stringstream fileName;
+            fileName << logsLocation;
+
+        if (logsLocation.back() != '/')
+            fileName << '/';
+
 
         fileName << logsLocation << getCurrentDateTime("%Y_%m_%d_")
-            << formatLogID(getLogID(logsLocation)) << ".log";
+            << formatLogID(getLogID(logsLocation.data())) << ".log";
 
         return fileName.str();
     }

@@ -16,6 +16,7 @@
 #include <fstream>
 #include <source_location> ///< Библа для вывода названия функции и файла
 #include <string>
+#include <string_view>
 
 namespace lrh
 {
@@ -29,9 +30,12 @@ namespace lrh
 			Info, Debug, Warning, Error, Fatal
 		};
 
-		friend std::ostream& operator<<(std::ostream& ss, Level level);
+		friend std::ostream& operator<<(std::ostream& ss, Level lvl);
 
 	public:
+
+		///Инициализация синглтона
+		static Logger& instance(const char *logsLocation = "Logs/");
 		///@brief Враппер над write() для удобства работы с логгером
 		///@param loc По-умолчанию передает функция, где вызван логгер
 		static void info(const std::string& message,
@@ -52,19 +56,17 @@ namespace lrh
 
 	private:
 		explicit Logger(const std::string& fileName);
-		///Инициализация синглтона
-		static Logger& getInstance();
 
 		///Выводит сообщение в лог
 		void write(
 			const std::string &message,
 			Level lvl,
-			const sl& loc = sl::current()
+			const sl& loc
 		);
 
 		///@brief Возвращает строку с именем файла в формате "2025_05_30_001.log"
-		static std::string createFileName(const char* logsLocation = "logs/");
-		static const char* getCurrentDateTime(const char* format);
+		static std::string createFileName(const std::string &logsLocation );
+		static const char* getCurrentDateTime(const char *format);
 
 		///@brief Возвращает id для лог-файла
 		static int getLogID(const char* logsLocation);
@@ -73,6 +75,7 @@ namespace lrh
 		///@brief Возвращает название файла, убирая путь
 		static const char* getFileName(const std::string &fullPath);
 
-		std::ofstream ofs; ///< Поток вывода в файл
+
+		std::ofstream m_loggerStream; ///< Поток вывода в файл
 	};
 }
