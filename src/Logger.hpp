@@ -16,7 +16,7 @@
 #include <fstream>
 #include <source_location> ///< Библа для вывода названия функции и файла
 #include <string>
-#include <string_view>
+//#include <string_view>
 
 namespace lrh
 {
@@ -75,6 +75,10 @@ namespace lrh
 		///@brief Возвращает название файла, убирая путь
 		static const char* getFileName(const std::string &fullPath);
 
+		static constexpr const char *CHAR_LVL_ARRAY[]
+		{
+			"INFO", "DEBUG", "WARNING", "ERROR", "FATAL"
+		};
 
 		std::ofstream m_loggerStream; ///< Поток вывода в файл
 	};
