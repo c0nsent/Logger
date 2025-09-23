@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 project(Logger)
 
+add_compile_options(-Wall -Wextra)
+
 add_library(Logger SHARED
         src/Logger.hpp
         src/Logger.cxx)
