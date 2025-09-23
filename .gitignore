@@ -32,4 +32,5 @@
 *.out
 *.app
 
-!/cmake-build-debug/
+
+!/test/

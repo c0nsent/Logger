@@ -24,31 +24,31 @@ namespace lrh
 
 	void Logger::info( const std::string &message, const sl &loc )
 	{
-		instance().write( message, Level::Info, loc );
+		this->write( message, Level::Info, loc );
 	}
 
 
 	void Logger::debug( const std::string &message, const sl &loc )
 	{
-		instance().write( message, Level::Debug, loc );
+		this->write( message, Level::Debug, loc );
 	}
 
 
 	void Logger::warning( const std::string &message, const sl &loc )
 	{
-		instance().write( message, Level::Warning, loc );
+		this->write( message, Level::Warning, loc );
 	}
 
 
 	void Logger::error( const std::string &message, const sl &loc )
 	{
-		instance().write( message, Level::Error, loc );
+		this->write( message, Level::Error, loc );
 	}
 
 
 	void Logger::fatal( const std::string &message, const sl &loc )
 	{
-		instance().write( message, Level::Fatal, loc );
+		write( message, Level::Fatal, loc );
 	}
 
 
@@ -98,17 +98,14 @@ namespace lrh
 
 		if ( std::filesystem::create_directory( logsLocation ) )
 		{
-
 			fileName << logsLocation;
 
 			if ( logsLocation.back() != '/' )
 				fileName << '/';
-
-			fileName << logsLocation;
 		}
 
 		fileName << getCurrentDateTime( "%Y_%m_%d_" )
-			<< formatLogID( getLogID( logsLocation.data() ) ) << ".log";
+			<< logIDtoStr( getLogID( logsLocation.data() ) ) << ".log";
 
 		return fileName.str();
 	}
@@ -148,7 +145,7 @@ namespace lrh
 	}
 
 
-	std::string Logger::formatLogID( const int id )
+	std::string Logger::logIDtoStr( const int id )
 	{
 		std::string strID{ std::to_string( id ) };
 		const auto zeros = static_cast<int>(3 - strID.length());
