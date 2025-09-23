@@ -13,10 +13,12 @@
 
 #pragma once
 
+#include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <source_location> ///< Библа для вывода названия функции и файла
 #include <string>
-//#include <string_view>
+#include <string_view>
 
 namespace lrh
 {
@@ -24,45 +26,48 @@ namespace lrh
 	{
 		using sl =  std::source_location;
 
-		///Простенький enum для простоты определения уровня лога
+		static constexpr const char *CHAR_LVL_ARRAY[]
+		{
+			"INFO", "DEBUG", "WARNING", "ERROR", "FATAL"
+		};
+
+		static constexpr const char *DEFAULT_LOG_DIR{"logs/"};
+
+		///enum для простоты определения уровня лога
 		enum class Level : uint8_t
 		{
 			Info, Debug, Warning, Error, Fatal
 		};
 
-		friend std::ostream& operator<<(std::ostream& ss, Level lvl);
+		friend std::ostream& operator<<(std::ostream &os, Level lvl);
+
 
 	public:
 
 		///Инициализация синглтона
-		static Logger& instance(const char *logsLocation = "Logs/");
+		static Logger &instance();
+
 		///@brief Враппер над write() для удобства работы с логгером
 		///@param loc По-умолчанию передает функция, где вызван логгер
-		static void info(const std::string& message,
-			const sl& loc = sl::current());
-		static void debug(const std::string& message,
-			const sl& loc = sl::current());
-		static void warning(const std::string& message,
-			const sl& loc = sl::current());
-		static void error(const std::string& message,
-			const sl& loc = sl::current());
-		static void fatal(const std::string& message,
-			const sl& loc = sl::current());
+		static void info(const std::string &message, const sl &loc = sl::current());
+		static void debug(const std::string &message, const sl &loc = sl::current());
+		static void warning(const std::string &message, const sl &loc = sl::current());
+		static void error(const std::string &message, const sl &loc = sl::current());
+		static void fatal(const std::string &message, const sl &loc = sl::current());
+
 
 		///Копирование и присваивание не разрешены,
 		///так как это синглтон
-		Logger(const Logger&) = delete;
-		Logger& operator=(const Logger&) = delete;
+		Logger(const Logger &) = delete;
+		Logger(Logger &&) = delete;
+		Logger& operator=(const Logger &) = delete;
+		Logger& operator=(Logger &&) = delete;
 
 	private:
-		explicit Logger(const std::string& fileName);
+		explicit Logger(const std::string &fileName);
 
 		///Выводит сообщение в лог
-		void write(
-			const std::string &message,
-			Level lvl,
-			const sl& loc
-		);
+		void write( const std::string &message, Level lvl, const sl& loc );
 
 		///@brief Возвращает строку с именем файла в формате "2025_05_30_001.log"
 		static std::string createFileName(const std::string &logsLocation );
@@ -71,14 +76,9 @@ namespace lrh
 		///@brief Возвращает id для лог-файла
 		static int getLogID(const char* logsLocation);
 		///@brief Возвращает строковый id в формате "001"
-		static std::string formatLogID(int id);
+		static std::string logIdToString(uint16_t id);
 		///@brief Возвращает название файла, убирая путь
 		static const char* getFileName(const std::string &fullPath);
-
-		static constexpr const char *CHAR_LVL_ARRAY[]
-		{
-			"INFO", "DEBUG", "WARNING", "ERROR", "FATAL"
-		};
 
 		std::ofstream m_loggerStream; ///< Поток вывода в файл
 	};

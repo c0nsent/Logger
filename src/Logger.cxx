@@ -10,46 +10,50 @@
 #include <filesystem>
 #include <iostream>
 #include <sstream>
+#include <cmath>
+#include <iomanip>
 
 
 namespace lrh
 {
-	std::ostream &operator<<( std::ostream &ss, const Logger::Level lvl )
+	std::ostream &operator<<( std::ostream &os, const Logger::Level lvl )
 	{
-		ss << Logger::CHAR_LVL_ARRAY[static_cast<int>(lvl)];
+		os << Logger::CHAR_LVL_ARRAY[static_cast<int>(lvl)];
 
-		return ss;
+		return os;
 	}
 
 
 	void Logger::info( const std::string &message, const sl &loc )
 	{
-		instance().write( message, Level::Info, loc );
+		init().write( message, Level::Info, loc );
 	}
 
 
 	void Logger::debug( const std::string &message, const sl &loc )
 	{
-		instance().write( message, Level::Debug, loc );
+		init().write( message, Level::Debug, loc );
 	}
 
 
 	void Logger::warning( const std::string &message, const sl &loc )
 	{
-		instance().write( message, Level::Warning, loc );
+		init().write( message, Level::Warning, loc );
 	}
 
 
 	void Logger::error( const std::string &message, const sl &loc )
 	{
-		instance().write( message, Level::Error, loc );
+		init().write( message, Level::Error, loc );
 	}
 
 
 	void Logger::fatal( const std::string &message, const sl &loc )
 	{
-		instance().write( message, Level::Fatal, loc );
+		init().write( message, Level::Fatal, loc );
 	}
+
+
 
 
 	Logger::Logger( const std::string &fileName )
@@ -60,29 +64,21 @@ namespace lrh
 	}
 
 
-	Logger &Logger::instance( const char *logsLocation )
+	Logger &Logger::instance()
 	{
-		static Logger singleton{ createFileName( logsLocation ) };
-		return singleton;
+		static Logger instance{ createFileName( .string() ) };
+		return instance;
 	}
 
 
-	void Logger::write(
-		const std::string &message,
-		const Level lvl,
-		const sl &loc
-	)
+	void Logger::write( const std::string &message, const Level lvl, const sl &loc )
 	{
 		constexpr static auto format{ "%Y %m %d | %H:%M:%S" };
 
 		std::stringstream log;
 
-		log << lvl << "\t: "
-				<< '[' << getCurrentDateTime( format ) << " | "
-				<< getFileName( loc.file_name() ) << "\t| "
-				<< loc.function_name() << " | "
-				<< loc.line() << "] : "
-				<< message << '\n';
+		log << lvl << "\t: " << '[' << getCurrentDateTime( format ) << " | " << getFileName( loc.file_name() )
+				<< "\t| " << loc.function_name() << " | " << loc.line() << "] : " << message << '\n';
 
 		m_loggerStream << log.str();
 
@@ -103,12 +99,10 @@ namespace lrh
 
 			if ( logsLocation.back() != '/' )
 				fileName << '/';
-
-			fileName << logsLocation;
 		}
 
 		fileName << getCurrentDateTime( "%Y_%m_%d_" )
-			<< formatLogID( getLogID( logsLocation.data() ) ) << ".log";
+			<< logIdToString( getLogID( logsLocation.data() ) ) << ".log";
 
 		return fileName.str();
 	}
@@ -148,16 +142,15 @@ namespace lrh
 	}
 
 
-	std::string Logger::formatLogID( const int id )
+	std::string Logger::logIdToString( const uint16_t id )
 	{
-		std::string strID{ std::to_string( id ) };
-		const auto zeros = static_cast<int>(3 - strID.length());
+		if ( id > 10000 ) throw std::runtime_error( "Log ID is too big. Too many logs" );
 
-		strID.insert( strID.begin(), zeros, '0' );
+		std::ostringstream oss;
+		oss << std::setfill( '0' ) << std::setw( 4 ) << id;
 
-		return strID;
+		return oss.str();
 	}
-
 
 	/**
 	* \details Возвращает указатель на fullPath, который указывает
