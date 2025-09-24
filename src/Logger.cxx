@@ -6,6 +6,7 @@
 
 #include "Logger.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <iomanip>
 #include <iostream>
@@ -16,7 +17,7 @@ namespace lrh
 {
 	std::ostream &operator<<( std::ostream &os, const Logger::Level lvl )
 	{
-		os << Logger::CHAR_LVL_ARRAY[static_cast<int>(lvl)];
+		os << Logger::CHAR_LVL_ARRAY[static_cast<uint8_t>(lvl)];
 
 		return os;
 	}
@@ -62,23 +63,15 @@ namespace lrh
 
 	Logger &Logger::instance()
 	{
-		static Logger instance{ createLogFile( DEFAULT_LOG_DIR.data() ) };
+		static Logger instance{ createLogFileName( DEFAULT_LOG_DIR.data() ) };
 		return instance;
 	}
 
 
 	void Logger::write( const std::string_view message, const Level lvl, const sl &loc )
 	{
-		std::stringstream log;
-
-		log << lvl << "\t: " << '[' << getCurrentDateTime( TIME_FORMAT.data() ) << " | " << loc.file_name()
-				<< "\t| " << loc.function_name() << " | " << loc.line() << "] : " << message << '\n';
-
-		m_loggerStream << log.str();
-
-		std::cout << log.str() << std::endl;
-
-		m_loggerStream.flush();
+		m_loggerStream << lvl << ": " << message << '[' << getCurrentDateTime( "%H:%M:%S"  ) << " | " << loc.file_name()
+				<< "\t| " << loc.function_name() << " | " << loc.line() << "] : " << std::endl;
 	}
 
 
@@ -91,15 +84,18 @@ namespace lrh
 	}
 
 
-	std::string Logger::createLogFile( const std::string_view logsDir )
+	std::string Logger::createLogFileName( const std::string_view logsDir )
 	{
 		if (not tryCreateDirectory( logsDir ))
 			throw std::filesystem::filesystem_error( "Could not create logs directory", std::error_code());
 
-		std::stringstream fileName;
+		const auto datePrefix{ getCurrentDateTime( "%Y_%m_%d_" ) };
 
-		fileName << logsDir << getCurrentDateTime( DATE_FORMAT.data() )
-			<< logIdToString( getLogID( logsDir.data() ) ) << ".log";
+		std::stringstream fileName;
+		fileName << logsDir << datePrefix
+			<< logIdToString( generateLogId( logsDir.data(), datePrefix ) ) << ".log";
+
+
 
 		return fileName.str();
 	}
@@ -117,39 +113,43 @@ namespace lrh
 	}
 
 
-	int Logger::getLogID( const char *logsPath )
+	uint16_t Logger::generateLogId( const std::string_view logDir, const std::string_view datePrefix )
 	{
-		const std::filesystem::path path{ logsPath };
-		const auto currentDate{ getCurrentDateTime( "%Y_%m_%d_" ) };
+		namespace fs = std::filesystem;
 
-		int id{ 1 };
-		for( const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator( logsPath ) )
+		const fs::directory_iterator logDirIt{ logDir, fs::directory_options::skip_permission_denied };
+
+		int maxId{ 0 };
+
+		for ( const auto &entry : logDirIt )
 		{
-			entry.is_regular_file()
-			///Здесь строка а не char для использования методов строки
-			//if( fileName.starts_with( currentDate ) ) id++;
+			if ( not entry.is_regular_file() ) continue;
+
+			const auto fileName{ entry.path().filename().string() };
+
+			if (not fileName.starts_with( datePrefix )) continue;
+			if (entry.path().extension() != ".log") continue;
+
+			const auto dotPos{ fileName.find( ".log", datePrefix.length() ) };
+			const auto idStr{ fileName.substr( datePrefix.length(), dotPos - datePrefix.length() ) };
+
+			if ( not std::ranges::all_of(idStr, ::isdigit) ) continue;
+
+			maxId = std::max( maxId, std::stoi( idStr ) );
 		}
-		return id;
+
+		if ( maxId  == 9999 )
+			throw std::runtime_error( "Log ID is too big. Too many logs" );
+
+		return static_cast<uint16_t>( maxId ) + 1;
 	}
 
 
 	std::string Logger::logIdToString( const uint16_t id )
 	{
-		if ( id > 10000 ) throw std::runtime_error( "Log ID is too big. Too many logs" );
-
 		std::ostringstream oss;
 		oss << std::setfill( '0' ) << std::setw( 4 ) << id;
 
 		return oss.str();
-	}
-
-	/**
-	* \details Возвращает указатель на fullPath, который указывает
-	* на начало названия самого файла
-	*/
-	const char *Logger::getFileName( const std::string &fullPath )
-	{
-		const std::size_t pos = fullPath.find_last_of( '/' );
-		return &fullPath[pos + 1];
 	}
 }

@@ -32,8 +32,6 @@ namespace lrh
 		};
 
 		static constexpr std::string_view DEFAULT_LOG_DIR{"logs/"};
-		static constexpr std::string_view TIME_FORMAT{ "%H:%M:%S" };
-		static constexpr std::string_view DATE_FORMAT{ "%Y_%m_%d" };
 
 		///enum для простоты определения уровня лога
 		enum class Level : uint8_t
@@ -73,15 +71,15 @@ namespace lrh
 
 		static bool tryCreateDirectory(std::string_view logsDir);
 		///@brief Возвращает строку с именем файла в формате "2025_05_30_001.log"
-		static std::string createLogFile( std::string_view logsDir );
+		static std::string createLogFileName( std::string_view logsDir );
 		static std::string getCurrentDateTime(std::string_view format);
 
+
+
 		///@brief Возвращает id для лог-файла
-		static int getLogID( const char* logsPath );
+		static uint16_t generateLogId( std::string_view logDir, std::string_view datePrefix  );
 		///@brief Возвращает строковый id в формате "001"
 		static std::string logIdToString(uint16_t id);
-		///@brief Возвращает название файла, убирая путь
-		static const char* getFileName(const std::string &fullPath);
 
 		std::ofstream m_loggerStream; ///< Поток вывода в файл
 	};
