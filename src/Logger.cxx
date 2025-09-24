@@ -6,12 +6,10 @@
 
 #include "Logger.hpp"
 
-#include <ctime>
-#include <filesystem>
+#include <chrono>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <cmath>
-#include <iomanip>
 
 
 namespace lrh
@@ -26,58 +24,54 @@ namespace lrh
 
 	void Logger::info( const std::string &message, const sl &loc )
 	{
-		init().write( message, Level::Info, loc );
+		instance().write( message, Level::Info, loc );
 	}
 
 
 	void Logger::debug( const std::string &message, const sl &loc )
 	{
-		init().write( message, Level::Debug, loc );
+		instance().write( message, Level::Debug, loc );
 	}
 
 
 	void Logger::warning( const std::string &message, const sl &loc )
 	{
-		init().write( message, Level::Warning, loc );
+		instance().write( message, Level::Warning, loc );
 	}
 
 
 	void Logger::error( const std::string &message, const sl &loc )
 	{
-		init().write( message, Level::Error, loc );
+		instance().write( message, Level::Error, loc );
 	}
 
 
 	void Logger::fatal( const std::string &message, const sl &loc )
 	{
-		init().write( message, Level::Fatal, loc );
+		instance().write( message, Level::Fatal, loc );
 	}
 
 
-
-
-	Logger::Logger( const std::string &fileName )
-		: m_loggerStream( fileName, std::ios::app )
+	Logger::Logger( const std::string_view fileName )
+		: m_loggerStream( fileName.data(), std::ios::app )
 	{
 		if( not m_loggerStream.is_open() )
-			throw std::runtime_error( "Could not open log file: " + fileName );
+			throw std::ios_base::failure( "Could not open new log file" );
 	}
 
 
 	Logger &Logger::instance()
 	{
-		static Logger instance{ createFileName( .string() ) };
+		static Logger instance{ createLogFile( DEFAULT_LOG_DIR.data() ) };
 		return instance;
 	}
 
 
-	void Logger::write( const std::string &message, const Level lvl, const sl &loc )
+	void Logger::write( const std::string_view message, const Level lvl, const sl &loc )
 	{
-		constexpr static auto format{ "%Y %m %d | %H:%M:%S" };
-
 		std::stringstream log;
 
-		log << lvl << "\t: " << '[' << getCurrentDateTime( format ) << " | " << getFileName( loc.file_name() )
+		log << lvl << "\t: " << '[' << getCurrentDateTime( TIME_FORMAT.data() ) << " | " << loc.file_name()
 				<< "\t| " << loc.function_name() << " | " << loc.line() << "] : " << message << '\n';
 
 		m_loggerStream << log.str();
@@ -88,55 +82,52 @@ namespace lrh
 	}
 
 
-	std::string Logger::createFileName( const std::string &logsLocation )
+	bool Logger::tryCreateDirectory( const std::string_view logsDir )
 	{
+		if ( std::filesystem::exists( logsDir ))
+			return std::filesystem::is_directory( logsDir );
+
+		return std::filesystem::create_directory( logsDir );
+	}
+
+
+	std::string Logger::createLogFile( const std::string_view logsDir )
+	{
+		if (not tryCreateDirectory( logsDir ))
+			throw std::filesystem::filesystem_error( "Could not create logs directory", std::error_code());
+
 		std::stringstream fileName;
 
-		if ( std::filesystem::create_directory( logsLocation ) )
-		{
-
-			fileName << logsLocation;
-
-			if ( logsLocation.back() != '/' )
-				fileName << '/';
-		}
-
-		fileName << getCurrentDateTime( "%Y_%m_%d_" )
-			<< logIdToString( getLogID( logsLocation.data() ) ) << ".log";
+		fileName << logsDir << getCurrentDateTime( DATE_FORMAT.data() )
+			<< logIdToString( getLogID( logsDir.data() ) ) << ".log";
 
 		return fileName.str();
 	}
 
 
-	const char *Logger::getCurrentDateTime( const char *format )
+	std::string Logger::getCurrentDateTime( const std::string_view format )
 	{
-		const std::time_t currentTime{ std::time( nullptr ) };
-		const std::tm *structTime{ std::localtime( &currentTime ) };
+		const auto now{ std::chrono::system_clock::now() };
+		const auto inTimeT{ std::chrono::system_clock::to_time_t( now ) };
 
-		constexpr static std::size_t bufferSize{ 25 };
-		static char buffer[bufferSize];
+		std::ostringstream oss;
+		oss << std::put_time(std::localtime( &inTimeT ), format.data());
 
-		std::strftime( buffer, bufferSize, format, structTime );
-
-		return buffer;
+		return oss.str();
 	}
 
 
-	int Logger::getLogID( const char *logsLocation )
+	int Logger::getLogID( const char *logsPath )
 	{
-		namespace fs = std::filesystem;
-
-		constexpr static auto logNameFormat{ "%Y_%m_%d_" };
-		const static fs::path path( logsLocation );
-		const static auto currentDate{ getCurrentDateTime( logNameFormat ) };
+		const std::filesystem::path path{ logsPath };
+		const auto currentDate{ getCurrentDateTime( "%Y_%m_%d_" ) };
 
 		int id{ 1 };
-		for( const fs::directory_entry &entry : fs::directory_iterator( logsLocation ) )
+		for( const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator( logsPath ) )
 		{
-			const std::string fileName{ entry.path().filename() };
-
+			entry.is_regular_file()
 			///Здесь строка а не char для использования методов строки
-			if( fileName.starts_with( currentDate ) ) id++;
+			//if( fileName.starts_with( currentDate ) ) id++;
 		}
 		return id;
 	}

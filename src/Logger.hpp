@@ -31,7 +31,9 @@ namespace lrh
 			"INFO", "DEBUG", "WARNING", "ERROR", "FATAL"
 		};
 
-		static constexpr const char *DEFAULT_LOG_DIR{"logs/"};
+		static constexpr std::string_view DEFAULT_LOG_DIR{"logs/"};
+		static constexpr std::string_view TIME_FORMAT{ "%H:%M:%S" };
+		static constexpr std::string_view DATE_FORMAT{ "%Y_%m_%d" };
 
 		///enum для простоты определения уровня лога
 		enum class Level : uint8_t
@@ -64,17 +66,18 @@ namespace lrh
 		Logger& operator=(Logger &&) = delete;
 
 	private:
-		explicit Logger(const std::string &fileName);
+		explicit Logger(std::string_view fileName);
 
 		///Выводит сообщение в лог
-		void write( const std::string &message, Level lvl, const sl& loc );
+		void write( std::string_view message, Level lvl, const sl& loc );
 
+		static bool tryCreateDirectory(std::string_view logsDir);
 		///@brief Возвращает строку с именем файла в формате "2025_05_30_001.log"
-		static std::string createFileName(const std::string &logsLocation );
-		static const char* getCurrentDateTime(const char *format);
+		static std::string createLogFile( std::string_view logsDir );
+		static std::string getCurrentDateTime(std::string_view format);
 
 		///@brief Возвращает id для лог-файла
-		static int getLogID(const char* logsLocation);
+		static int getLogID( const char* logsPath );
 		///@brief Возвращает строковый id в формате "001"
 		static std::string logIdToString(uint16_t id);
 		///@brief Возвращает название файла, убирая путь
