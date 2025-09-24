@@ -28,7 +28,7 @@ namespace lrh
 
 		static constexpr const char *CHAR_LVL_ARRAY[]
 		{
-			"INFO", "DEBUG", "WARNING", "ERROR", "FATAL"
+			"INFO:", "DEBUG:", "WARNING:", "ERROR:", "FATAL:"
 		};
 
 		static constexpr std::string_view DEFAULT_LOG_DIR{"logs/"};

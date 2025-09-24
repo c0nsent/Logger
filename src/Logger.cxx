@@ -70,8 +70,9 @@ namespace lrh
 
 	void Logger::write( const std::string_view message, const Level lvl, const sl &loc )
 	{
-		m_loggerStream << lvl << ": " << message << '[' << getCurrentDateTime( "%H:%M:%S"  ) << " | " << loc.file_name()
-				<< "\t| " << loc.function_name() << " | " << loc.line() << "] : " << std::endl;
+		m_loggerStream << std::left << std::setw(10) << lvl << message
+			<< "\t[ " << loc.line() << " | "  << loc.function_name() << " | " << loc.file_name()  << "\t| "
+			<< getCurrentDateTime( "%H:%M:%S"  ) << " ]" << std::endl;
 	}
 
 
@@ -94,8 +95,6 @@ namespace lrh
 		std::stringstream fileName;
 		fileName << logsDir << datePrefix
 			<< logIdToString( generateLogId( logsDir.data(), datePrefix ) ) << ".log";
-
-
 
 		return fileName.str();
 	}
