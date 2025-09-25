@@ -63,7 +63,12 @@ namespace lrh
 
 	Logger &Logger::instance()
 	{
-		static Logger instance{ createLogFileName( DEFAULT_LOG_DIR.data() ) };
+		/// Чтобы при каждом вызове метод не проверял наличие папки
+		static const bool isDirectoryCreated{ tryCreateLogDirectory( DEFAULT_LOG_DIR.data() ) };
+		if ( isDirectoryCreated )
+			throw std::filesystem::filesystem_error( "Could not create logs directory", std::error_code());
+
+		static Logger instance{ generateLogFileName( DEFAULT_LOG_DIR.data() ) };
 		return instance;
 	}
 
@@ -76,7 +81,7 @@ namespace lrh
 	}
 
 
-	bool Logger::tryCreateDirectory( const std::string_view logsDir )
+	bool Logger::tryCreateLogDirectory( const std::string_view logsDir )
 	{
 		if ( std::filesystem::exists( logsDir ))
 			return std::filesystem::is_directory( logsDir );
@@ -85,16 +90,15 @@ namespace lrh
 	}
 
 
-	std::string Logger::createLogFileName( const std::string_view logsDir )
+	std::string Logger::generateLogFileName( const std::string_view logsDir )
 	{
-		if (not tryCreateDirectory( logsDir ))
-			throw std::filesystem::filesystem_error( "Could not create logs directory", std::error_code());
-
 		const auto datePrefix{ getCurrentDateTime( "%Y_%m_%d_" ) };
+
+		/// Возможно оптимизировать логгер за счет вызова std::ofstream в самих фунциях заместо возврата множества std::string
 
 		std::stringstream fileName;
 		fileName << logsDir << datePrefix
-			<< logIdToString( generateLogId( logsDir.data(), datePrefix ) ) << ".log";
+			<< idToPaddedStr( generateLogId( logsDir.data(), datePrefix ) ) << ".log";
 
 		return fileName.str();
 	}
@@ -102,11 +106,11 @@ namespace lrh
 
 	std::string Logger::getCurrentDateTime( const std::string_view format )
 	{
-		const auto now{ std::chrono::system_clock::now() };
-		const auto inTimeT{ std::chrono::system_clock::to_time_t( now ) };
+		using std::chrono::system_clock;
+		const auto now{ system_clock::to_time_t( system_clock::now() ) };
 
 		std::ostringstream oss;
-		oss << std::put_time(std::localtime( &inTimeT ), format.data());
+		oss << std::put_time(std::localtime( &now ), format.data());
 
 		return oss.str();
 	}
@@ -129,7 +133,7 @@ namespace lrh
 			if (not fileName.starts_with( datePrefix )) continue;
 			if (entry.path().extension() != ".log") continue;
 
-			const auto dotPos{ fileName.find( ".log", datePrefix.length() ) };
+			const auto dotPos{ fileName.find( '.', datePrefix.length() ) };
 			const auto idStr{ fileName.substr( datePrefix.length(), dotPos - datePrefix.length() ) };
 
 			if ( not std::ranges::all_of(idStr, ::isdigit) ) continue;
@@ -144,7 +148,7 @@ namespace lrh
 	}
 
 
-	std::string Logger::logIdToString( const uint16_t id )
+	std::string Logger::idToPaddedStr( const uint16_t id )
 	{
 		std::ostringstream oss;
 		oss << std::setfill( '0' ) << std::setw( 4 ) << id;
