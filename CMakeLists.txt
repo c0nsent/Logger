@@ -1,11 +1,8 @@
-cmake_minimum_required(VERSION 4.0)
-set(CMAKE_CXX_STANDARD 23)
+cmake_minimum_required(VERSION 3.31)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-
 project(Logger)
-
-add_compile_options(-Wall -Wextra)
 
 add_library(Logger SHARED
         src/Logger.hpp
