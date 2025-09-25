@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <filesystem>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -65,7 +66,7 @@ namespace lrh
 	{
 		/// Чтобы при каждом вызове метод не проверял наличие папки
 		static const bool isDirectoryCreated{ tryCreateLogDirectory( DEFAULT_LOG_DIR.data() ) };
-		if ( isDirectoryCreated )
+		if ( not isDirectoryCreated )
 			throw std::filesystem::filesystem_error( "Could not create logs directory", std::error_code());
 
 		static Logger instance{ generateLogFileName( DEFAULT_LOG_DIR.data() ) };
