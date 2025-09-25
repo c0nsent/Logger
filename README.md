@@ -11,6 +11,7 @@
 - Запись в отдельную директорию (по умолчанию: logs/)
 - Минимальные зависимости (стандартная библиотека C++)
 
+---
 
 ## Примеры
 
@@ -38,7 +39,9 @@ WARNING:  Shooting stars never stop	[ 15 | int main() | /home/amitayus_/Programm
 
 ![image](assets/images/Log%20names%20example.png)
 
-### Добавление в свой проект
+---
+
+### Как добавить в свой проект
 
 ```cmake
 add_subdirectory( Logger )
